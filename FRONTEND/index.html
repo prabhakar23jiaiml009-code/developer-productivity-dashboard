@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dev Metrics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: Arial;
+  background: #eef1f5;
+  padding: 20px;
+}
+
+h2 { text-align:center; margin-bottom:5px; }
+.sub { text-align:center; color:gray; margin-bottom:10px; }
+.source { text-align:center; font-size:13px; color:#777; margin-bottom:20px; }
+
+#output {
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+  width: 380px;
+  margin: auto;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.card { margin: 8px 0; font-size: 16px; }
+.good { color: green; }
+.bad { color: red; }
+
+.score {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+canvas {
+  display:block;
+  margin:25px auto;
+  max-width:420px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Developer Metrics Dashboard</h2>
+<div class="sub">Engineering performance made simple</div>
+<div class="source">Data source: Simulated Git & Jira activity</div>
+
+<div id="output">⏳ Fetching backend metrics...</div>
+<canvas id="myChart"></canvas>
+
+<script>
+let chartInstance = null;
+
+fetch("http://localhost:5000/api/data")
+  .then(res => res.json())
+  .then(data => renderDashboard(data))
+  .catch(() => {
+    document.getElementById("output").innerHTML = "❌ Backend not running";
+  });
+
+function renderDashboard(data) {
+
+  let totalLeadTime = 0;
+  let totalCycleTime = 0;
+  let totalBugs = 0;
+
+  data.forEach(item => {
+    const created = new Date(item.created_at);
+    const merged = new Date(item.merged_at);
+    const deployed = new Date(item.deploy_date);
+
+    totalCycleTime += (merged - created) / (1000*60*60*24);
+    totalLeadTime += (deployed - created) / (1000*60*60*24);
+    totalBugs += item.bugs;
+  });
+
+  const avgCycleTime = totalCycleTime / data.length;
+  const avgLeadTime = totalLeadTime / data.length;
+  const bugRate = totalBugs / data.length;
+  const deploymentFrequency = data.length;
+
+  // ⭐ Productivity Score (NEW)
+  let score = 100;
+  if(avgLeadTime > 2) score -= 20;
+  if(bugRate > 1) score -= 20;
+  if(avgCycleTime > 2) score -= 10;
+
+  // Insights
+  const leadStatus = avgLeadTime > 2 ? "Slow delivery → Needs optimization" : "Fast delivery → Good workflow";
+  const bugStatus = bugRate > 1 ? "High bugs → Quality issue" : "Low bugs → Stable code";
+
+  document.getElementById("output").innerHTML = `
+    <div class="card"><b>Cycle Time:</b> ${avgCycleTime.toFixed(2)} days</div>
+    <div class="card"><b>Lead Time:</b> ${avgLeadTime.toFixed(2)} days</div>
+    <div class="card"><b>Bug Rate:</b> ${bugRate}</div>
+    <div class="card"><b>Deployments:</b> ${deploymentFrequency}</div>
+
+    <div class="score">Productivity Score: ${score}/100</div>
+
+    <h3>Insights</h3>
+    <div class="${avgLeadTime > 2 ? 'bad' : 'good'}">${leadStatus}</div>
+    <div class="${bugRate > 1 ? 'bad' : 'good'}">${bugStatus}</div>
+  `;
+
+  if(chartInstance) chartInstance.destroy();
+
+  const ctx = document.getElementById('myChart');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Cycle Time','Lead Time','Bug Rate'],
+      datasets: [{
+        label: 'Engineering Metrics',
+        data: [avgCycleTime, avgLeadTime, bugRate],
+        backgroundColor: ['#4e79a7','#f28e2c','#e15759']
+      }]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
