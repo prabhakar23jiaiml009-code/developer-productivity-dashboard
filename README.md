@@ -21,3 +21,14 @@ Tech Stack
 • JavaScript (ES6)
 • HTML5
 • CSS3
+rchitecture & System Design
+
+The project architecture and workflow were designed using Miro to clearly define the system structure, frontend–backend interaction, and data flow.
+
+[View Miro Architecture Diagram](https://miro.com/app/board/uXjVHdWGeFw=/?share_link_id=200481697949)
+
+This diagram explains:
+• Application workflow
+• Component structure
+• API interaction flow
+• Overall system planning
